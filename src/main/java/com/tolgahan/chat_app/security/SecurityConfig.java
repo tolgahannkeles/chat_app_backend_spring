@@ -61,12 +61,12 @@ public class SecurityConfig {
         httpSecurity.authorizeHttpRequests(configurer ->
 
                         configurer
-                                //.requestMatchers(HttpMethod.GET,"/api/user/hello").hasRole("USER")
-                                //.requestMatchers(HttpMethod.GET,"/api/user/helloAdmin").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/auth/**").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/api/user/all").hasAuthority("ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/user/**").authenticated()
                                 .anyRequest().authenticated()
-
                 )
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(httpSecuritySessionManagementConfigurer -> httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

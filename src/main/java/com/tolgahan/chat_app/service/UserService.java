@@ -48,4 +48,8 @@ public class UserService {
         Email emailEntity = new Email(email, savedUser);
         emailService.save(emailEntity);
     }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
 }

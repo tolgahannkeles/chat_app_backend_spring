@@ -35,9 +35,10 @@ public class ResponseCreator {
 
     public static ResponseEntity<String> ok(Object output) {
         try {
+            String json = convertToJson(createResponseMap("response", output));
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")
-                    .body(convertToJson(createResponseMap("response", output)));
+                    .body(json);
         } catch (JsonProcessingException e) {
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")

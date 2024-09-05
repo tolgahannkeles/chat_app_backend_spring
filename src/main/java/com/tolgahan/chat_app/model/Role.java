@@ -1,5 +1,7 @@
 package com.tolgahan.chat_app.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.Entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,5 +21,6 @@ public class Role {
     public Role(String name) {
         this.name = name;
     }
+
 }
 

@@ -33,11 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = getJwtFromRequest(request);
         if (token != null && jwtTokenProvider.validateToken(token) && !tokenBlackListService.isTokenInBlacklist(token) ) {
-            System.out.println(token);
-
             UUID id = jwtTokenProvider.getUserIdFromToken(token);
             UserDetails userDetails = jwtUserDetailService.loadUserById(id);
-            System.out.println(userDetails);
             if (userDetails != null) {
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

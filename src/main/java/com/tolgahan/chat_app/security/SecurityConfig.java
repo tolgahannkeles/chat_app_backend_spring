@@ -64,8 +64,13 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/auth/**").authenticated()
+                                //--------------------------------------------------------------------------------
                                 .requestMatchers(HttpMethod.GET, "/api/user/all").hasAuthority("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/user/**").authenticated()
+                                //--------------------------------------------------------------------------------
+                                .requestMatchers("/api/account").authenticated()
+                                .requestMatchers("/api/account/**").authenticated()
+                                //--------------------------------------------------------------------------------
                                 .anyRequest().authenticated()
                 )
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(jwtAuthEntryPoint))

@@ -1,5 +1,6 @@
 package com.tolgahan.chat_app.model;
 
+import com.tolgahan.chat_app.enums.FriendshipStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,6 +41,30 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private List<Role> roles = new ArrayList<>();
+
+
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Friendship> sentFriendRequests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Friendship> receivedFriendRequests = new ArrayList<>();
+
+
+    public List<User> getFriends() {
+        List<User> friends = new ArrayList<>();
+        friends.addAll(sentFriendRequests.stream()
+                .filter(friendship -> friendship.getStatus() == FriendshipStatus.ACCEPTED)
+                .map(Friendship::getReceiver)
+                .toList());
+        friends.addAll(receivedFriendRequests.stream()
+                .filter(friendship -> friendship.getStatus() == FriendshipStatus.ACCEPTED)
+                .map(Friendship::getSender)
+                .toList());
+        return friends;
+    }
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Email> emails = new ArrayList<>();
 
     public User(String username, String password) {
         this.username = username;

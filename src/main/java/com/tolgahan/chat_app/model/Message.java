@@ -1,5 +1,6 @@
 package com.tolgahan.chat_app.model;
 
+import com.tolgahan.chat_app.enums.DeletionType;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -25,8 +26,7 @@ public class Message {
     private Boolean isRead;
     private LocalDateTime sentAt;
 
-    @ManyToOne
-    @JoinColumn(name = "deletion_type_id")
+    @Enumerated(EnumType.STRING)
     private DeletionType deletionType;
 
     @PrePersist

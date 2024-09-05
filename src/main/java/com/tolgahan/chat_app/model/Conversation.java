@@ -1,6 +1,8 @@
 package com.tolgahan.chat_app.model;
 
+import com.tolgahan.chat_app.enums.ConversationType;
 import jakarta.persistence.*;
+import lombok.Data;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Entity
+@Data
 public class Conversation {
 
     @Id
@@ -24,8 +27,7 @@ public class Conversation {
     private LocalDateTime updatedAt;
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "conversation_type_id")
+    @Enumerated(EnumType.STRING)
     private ConversationType conversationType;
 
     @ManyToOne

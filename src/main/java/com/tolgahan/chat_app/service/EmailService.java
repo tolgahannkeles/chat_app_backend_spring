@@ -16,7 +16,9 @@ public class EmailService {
     }
 
     public User getUserByEmail(String email) {
-        return emailRepository.findUserByEmail(email).orElse(null);
+        Email email_ = emailRepository.findByEmail(email).orElse(null);
+        if (email_ != null && email != null && email_.getUser() != null) return email_.getUser();
+        return null;
     }
 
     public List<String> getEmailsByUser(User user) {

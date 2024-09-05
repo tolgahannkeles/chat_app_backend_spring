@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,34 +40,6 @@ public class UserController {
         this.emailService = emailService;
         this.objectMapper = objectMapper;
         this.jwtTokenProvider = jwtTokenProvider;
-    }
-
-
-    @GetMapping
-    public ResponseEntity<String> getUser(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            return ResponseCreator.unauthorized("Invalid or missing Authorization header");
-        }
-
-        try {
-            String token = bearerToken.substring(7);
-
-            UUID userId = jwtTokenProvider.getUserIdFromToken(token);
-            logger.info("Getting user with id: {}", userId);
-
-            User user = userService.getUserById(userId);
-            if (user == null) {
-                logger.error("User not found with id: {}", userId);
-                return ResponseCreator.notFound();
-            }
-            return ResponseCreator.ok(user);
-
-        } catch (Exception e) {
-            logger.error("Error getting user: {}", e.getMessage());
-            return ResponseCreator.internalServerError("Error getting user: " + e.getMessage());
-        }
     }
 
     @GetMapping("/{username}")
@@ -94,14 +67,15 @@ public class UserController {
     public ResponseEntity<String> all() {
         try {
             logger.info("Getting all users");
-            return ResponseCreator.ok(userService.getAllUsers().stream().map(user -> {
+            List<UserResponse> response= userService.getAllUsers().stream().map(user -> {
                 UserResponse userResponse = new UserResponse();
                 userResponse.setId(user.getId());
                 userResponse.setUsername(user.getUsername());
                 userResponse.setEmail(emailService.getEmailsByUser(user));
                 return userResponse;
 
-            }));
+            }).toList();
+            return ResponseCreator.ok(response);
         } catch (Exception e) {
             logger.error("Error getting all users: {}", e.getMessage());
             return ResponseCreator.internalServerError("Error: " + e.getMessage());

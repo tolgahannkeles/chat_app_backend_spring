@@ -1,13 +1,16 @@
 package com.tolgahan.chat_app.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.util.UUID;
 import java.time.LocalDateTime;
 
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ConversationUser {
 
     @Id
@@ -26,18 +29,17 @@ public class ConversationUser {
     private boolean isDeleted;
 
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+    public ConversationUser(User user, Conversation conversation) {
+        this.user = user;
+        this.conversation = conversation;
+        this.isDeleted=false;
+        this.isMuted=false;
+    }
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    // Getters and Setters
 }

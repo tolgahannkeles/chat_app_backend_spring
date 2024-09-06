@@ -5,12 +5,14 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 @Data
 public class Message {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,13 +26,13 @@ public class Message {
     private String message;
     private Boolean isDeleted;
     private Boolean isRead;
-    private LocalDateTime sentAt;
+    private Date sentAt;
 
     @Enumerated(EnumType.STRING)
     private DeletionType deletionType;
 
     @PrePersist
     protected void onCreate() {
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = Date.from(LocalDateTime.now().toInstant(java.time.ZoneOffset.UTC));
     }
 }

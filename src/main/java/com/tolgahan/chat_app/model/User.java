@@ -2,9 +2,7 @@ package com.tolgahan.chat_app.model;
 
 import com.tolgahan.chat_app.enums.FriendshipStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +11,8 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 public class User {
 
@@ -40,13 +39,15 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @ToString.Exclude
     private List<Role> roles = new ArrayList<>();
 
-
-    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Friendship> sentFriendRequests = new ArrayList<>();
 
-    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Friendship> receivedFriendRequests = new ArrayList<>();
 
 
@@ -82,12 +83,18 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
     private List<ConversationUser> conversationUsers= new ArrayList<>();
 
     public List<Conversation> getConversations() {
         return conversationUsers.stream().map(ConversationUser::getConversation).collect(Collectors.toList());
     }
 
-    // Getters and Setters
+    @Override
+    public String toString() {
+        return "User{id=" + id + ", username='" + username + "', ...}";
+    }
+
 }

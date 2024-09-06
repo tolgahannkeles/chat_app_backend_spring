@@ -3,16 +3,20 @@ package com.tolgahan.chat_app.model;
 import com.tolgahan.chat_app.enums.ConversationType;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class Conversation {
 
     @Id
@@ -34,6 +38,9 @@ public class Conversation {
     @JoinColumn(name = "creator_id")
     private User creator;
 
+    @OneToMany(mappedBy = "conversation")
+    private List<Message> messages = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -46,8 +53,7 @@ public class Conversation {
     }
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ConversationUser> conversationUsers;
-
+    private List<ConversationUser> conversationUsers = new ArrayList<>();
 
 
     public List<User> getUsers() {

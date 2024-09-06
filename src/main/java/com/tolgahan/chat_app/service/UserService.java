@@ -22,7 +22,7 @@ public class UserService {
     private final EmailRepository emailService;
     private final RoleRepository roleRepository;
     private final Logger logger = LoggerFactory.getLogger(UserService.class);
-    private final String DEFAULT_ROLE = "ADMIN";
+    private final String DEFAULT_ROLE = "USER";
     private final FriendshipService friendshipService;
 
     public UserService(UserRepository userRepository, EmailRepository emailService, RoleRepository roleRepository, FriendshipService friendshipService) {

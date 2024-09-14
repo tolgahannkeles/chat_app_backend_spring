@@ -29,7 +29,6 @@ public class MessageController {
     private final ConversationService conversationService;
     private final MessageService messageService;
     private final Logger logger = LoggerFactory.getLogger(MessageController.class);
-
     public MessageController(UserService userService, ConversationService conversationService, MessageService messageService) {
         this.userService = userService;
         this.conversationService = conversationService;
@@ -57,7 +56,7 @@ public class MessageController {
             message.setSender(user);
 
             messageService.sendMessage(message);
-            
+
             return ResponseCreator.ok("Message sent successfully");
 
         } catch (Exception e) {

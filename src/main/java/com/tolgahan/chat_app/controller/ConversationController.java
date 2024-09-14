@@ -46,7 +46,14 @@ public class ConversationController {
             logger.error("User not found.");
             return ResponseCreator.notFound();
         }
-        return ResponseCreator.ok(user.getConversations());
+        List<ConversationResponse> responses = new ArrayList<>();
+        user.getConversations().forEach(conversation -> {
+            ConversationResponse conversationResponse = new ConversationResponse();
+            conversationResponse.setId(conversation.getId());
+            conversationResponse.setTitle(conversation.getTitle());
+            responses.add(conversationResponse);
+        });
+        return ResponseCreator.ok(responses);
     }
 
     @GetMapping("/chats")
@@ -56,7 +63,7 @@ public class ConversationController {
             logger.error("User not found.");
             return ResponseCreator.notFound();
         }
-        List<ConversationResponse> response=new ArrayList<>();
+        List<ConversationResponse> response = new ArrayList<>();
         user.getConversations().forEach(conversation -> {
             if (conversation.getConversationType().equals(ConversationType.CHAT)) {
                 ConversationResponse conversationResponse = new ConversationResponse();
@@ -76,7 +83,7 @@ public class ConversationController {
             logger.error("User not found.");
             return ResponseCreator.notFound();
         }
-        List<ConversationResponse> response=new ArrayList<>();
+        List<ConversationResponse> response = new ArrayList<>();
         user.getConversations().forEach(conversation -> {
             if (conversation.getConversationType().equals(ConversationType.GROUP)) {
                 ConversationResponse conversationResponse = new ConversationResponse();
@@ -89,7 +96,7 @@ public class ConversationController {
     }
 
     @PostMapping("/groups")
-    public ResponseEntity<String> createChat(HttpServletRequest request, @RequestBody CreateGroupRequest createGroupRequest) {
+    public ResponseEntity<String> createChat(@RequestBody CreateGroupRequest createGroupRequest) {
         User user = getCurrentUser();
         if (user == null) {
             logger.error("User not found.");
@@ -101,8 +108,8 @@ public class ConversationController {
         conversation.setCreator(user);
         conversation.getConversationUsers().add(new ConversationUser(user, conversation));
 
-        createGroupRequest.getParticipants().forEach(uuid -> {
-                    User participant = userService.getUserById(uuid);
+        createGroupRequest.getUsernames().forEach(username -> {
+                    User participant = userService.getUserByUsername(username);
                     if (participant != null) {
                         conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
                     }
@@ -114,19 +121,18 @@ public class ConversationController {
         ConversationResponse response = new ConversationResponse();
         response.setId(saved.getId());
         response.setTitle(saved.getTitle());
+        System.out.println(response);
         return ResponseCreator.ok(response);
     }
 
 
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());
         }
         return null; // Kullanıcı doğrulanmamışsa
     }
-
 
 
 }

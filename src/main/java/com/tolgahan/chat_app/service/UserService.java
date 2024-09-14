@@ -57,34 +57,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public void sendFriendRequest(User sender, User receiver) {
-        if (friendshipService.getFriendshipStatus(sender.getId(), receiver.getId()) == null) {
-            sender.getSentFriendRequests().add(new Friendship(sender, receiver, FriendshipStatus.PENDING));
-            userRepository.save(sender);
-        } else {
-            logger.error("Friendship already exists");
-            throw new RuntimeException("Friendship already exists");
-        }
-    }
 
-    public void acceptFriendRequest(Friendship friendship) {
-        if (friendship.getStatus() == FriendshipStatus.PENDING) {
-            friendship.setStatus(FriendshipStatus.ACCEPTED);
-            friendshipService.saveFriendship(friendship);
-        } else {
-            logger.error("No pending friendship found");
-            throw new RuntimeException("No pending friendship found");
-        }
 
-    }
 
-    public void rejectFriendRequest(Friendship friendship) {
-        if (friendship.getStatus() == FriendshipStatus.PENDING) {
-            friendshipService.deleteFriendship(friendship);
-        } else {
-            logger.error("No pending friendship found");
-            throw new RuntimeException("No pending friendship found");
-        }
-
+    public List<User> findUserStartingWith(String username) {
+        return userRepository.findAllByUsernameStartingWith(username).orElse(null);
     }
 }

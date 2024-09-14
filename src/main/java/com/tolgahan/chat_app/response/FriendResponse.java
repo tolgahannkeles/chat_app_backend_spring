@@ -1,5 +1,6 @@
 package com.tolgahan.chat_app.response;
 
+import com.tolgahan.chat_app.enums.FriendshipStatus;
 import lombok.Data;
 
 import java.util.List;
@@ -9,5 +10,6 @@ import java.util.UUID;
 public class FriendResponse {
     UUID id;
     String username;
-    List<String> emails;
+    List<String> email;
+    FriendshipStatus friendshipStatus;
 }

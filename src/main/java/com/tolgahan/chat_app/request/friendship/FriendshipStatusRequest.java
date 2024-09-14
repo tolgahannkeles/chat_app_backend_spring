@@ -1,10 +1,9 @@
-package com.tolgahan.chat_app.request;
+package com.tolgahan.chat_app.request.friendship;
 
 import lombok.Data;
 
 import java.util.UUID;
 @Data
 public class FriendshipStatusRequest {
-    UUID senderId;
-    UUID receiverId;
+    UUID id;
 }

@@ -15,6 +15,7 @@ import com.tolgahan.chat_app.service.TokenBlackListService;
 import com.tolgahan.chat_app.service.UserService;
 import com.tolgahan.chat_app.utils.ResponseCreator;
 import com.tolgahan.chat_app.validation.RegistrationValidator;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -161,28 +163,41 @@ public class AuthController {
     }
 
 
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody RefreshTokenRequest refreshRequest) {
-        if (refreshRequest == null || refreshRequest.getUserId() == null || refreshRequest.getRefreshToken() == null) {
-            logger.error("Invalid logout request");
-            return ResponseCreator.badRequest("Please provide user id and refresh token");
-        }
+    @GetMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+
         try {
-            logger.info("Logging out user: {}", refreshRequest.getUserId());
-            RefreshToken token = refreshTokenService.getByUserId(refreshRequest.getUserId());
-            if (token != null && token.getToken().equals(refreshRequest.getRefreshToken())) {
-                tokenBlackListService.add(token.getToken());
-                refreshTokenService.deleteRefreshToken(token);
+            User user = getCurrentUser();
+            logger.info("Logging out user: {}", user.getId());
+            RefreshToken refreshToken = refreshTokenService.getByUserId(user.getId());
+            String token = request.getHeader("Authorization").substring(7);
+            if (refreshToken != null) {
+                tokenBlackListService.add(token);
+                refreshTokenService.deleteRefreshToken(refreshToken);
                 return ResponseCreator.ok("Logout successful");
             } else {
                 logger.error("Invalid refresh token");
                 return ResponseCreator.unauthorized("Invalid refresh token");
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error logging out: {}", e.getMessage());
             return ResponseCreator.internalServerError(e.toString());
         }
 
+    }
+
+    @GetMapping("/isTokenValid")
+    public ResponseEntity<String> isTokenValid() {
+        try {
+            SecurityContext context = SecurityContextHolder.getContext();
+            if (context.getAuthentication() == null) {
+                return ResponseCreator.ok(false);
+            }
+            return ResponseCreator.ok(true);
+        } catch (Exception e) {
+            logger.error("Error checking token validity: {}", e.getMessage());
+            return ResponseCreator.internalServerError(e.toString());
+        }
     }
 
 
@@ -191,5 +206,14 @@ public class AuthController {
         logger.error("Invalid request body: {}", ex.getMessage());
         return ResponseCreator.badRequest("Invalid request body: " + ex.getMessage());
     }
+
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null; // Kullanıcı doğrulanmamışsa
+    }
+
 
 }

@@ -1,5 +1,7 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.exceptions.BadRequestException;
+import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Email;
 import com.tolgahan.chat_app.model.Role;
 import com.tolgahan.chat_app.model.User;
@@ -32,24 +34,24 @@ public class AccountController {
 
 
     @GetMapping
-    public ResponseEntity<String> getUser() {
+    public AccountResponse getUser() {
         try {
             logger.info("Getting account info");
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return ResponseCreator.notFound();
+                throw new TokenIsNotValidException();
             }
             AccountResponse response = new AccountResponse();
             response.setId(user.getId().toString());
             response.setUsername(user.getUsername());
             response.setEmail(user.getEmails().stream().map(Email::getEmail).toList());
             response.setRoles(user.getRoles().stream().map(Role::getName).toList());
-            return ResponseCreator.ok(response);
+            return response;
 
         } catch (Exception e) {
             logger.error("Error getting user: {}", e.getMessage());
-            return ResponseCreator.internalServerError("Error getting user: " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
         }
     }
 

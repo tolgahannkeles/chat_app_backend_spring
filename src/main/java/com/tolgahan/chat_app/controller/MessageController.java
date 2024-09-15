@@ -1,6 +1,9 @@
 package com.tolgahan.chat_app.controller;
 
 import com.tolgahan.chat_app.enums.DeletionType;
+import com.tolgahan.chat_app.exceptions.BadRequestException;
+import com.tolgahan.chat_app.exceptions.InvalidArgumentException;
+import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.Message;
 import com.tolgahan.chat_app.model.User;
@@ -39,54 +42,58 @@ public class MessageController {
     }
 
     @PostMapping("{conversationId}")
-    public ResponseEntity<String> sendMessage(@PathVariable UUID conversationId, @RequestBody MessageRequest messageRequest) {
+    public String sendMessage(@PathVariable UUID conversationId, @RequestBody MessageRequest messageRequest) {
         if (conversationId == null || messageRequest == null) {
-            return ResponseEntity.badRequest().body("Conversation id or message request can not be null");
+            logger.error("Conversation id or message request can not be null");
+            throw new InvalidArgumentException("Conversation id or message request can not be null");
         }
 
         try {
             messageService.sendMessage(getCurrentUser(), conversationId, messageRequest);
-            return ResponseCreator.ok("Message sent successfully");
+            return "Message sent successfully";
 
         } catch (Exception e) {
             logger.error("An error occurred while sending message", e);
-            return ResponseCreator.badRequest("An error occurred while sending message");
+            throw new BadRequestException("An error occurred while sending message -> " + e.getMessage());
         }
     }
 
     @GetMapping("/{conversationId}")
-    public ResponseEntity<String> getMessages(@PathVariable UUID conversationId) {
+    public List<MessageResponse> getMessages(@PathVariable UUID conversationId) {
         try {
             List<MessageResponse> response = new ArrayList<>();
             User user = getCurrentUser();
             if (user == null) {
-                return ResponseCreator.badRequest("User not found");
+                logger.error("User not found.");
+                throw new TokenIsNotValidException();
             }
             messageService.getMessages(getCurrentUser(), conversationId).forEach(message -> {
                 if (message.getSender().getId().equals(user.getId()) && message.getIsDeleted() && message.getDeletionType().equals(DeletionType.ME)) {
                     message.setMessage("This message was deleted");
-                }else if (message.getIsDeleted() && message.getDeletionType().equals(DeletionType.EVERYONE)){
+                } else if (message.getIsDeleted() && message.getDeletionType().equals(DeletionType.EVERYONE)) {
                     message.setMessage("This message was deleted");
                 }
                 response.add(new MessageResponse(message));
             });
 
-            return ResponseCreator.ok(response);
+            return response;
 
         } catch (Exception e) {
-            return ResponseCreator.badRequest(e.getMessage());
+            logger.error("An error occurred while getting messages", e);
+            throw new BadRequestException("An error occurred while getting messages -> " + e.getMessage());
         }
     }
 
     @DeleteMapping("/{conversationId}")
-    public ResponseEntity<String> deleteMessage(@PathVariable UUID conversationId, @RequestBody MessageDeleteRequest request) {
+    public String deleteMessage(@PathVariable UUID conversationId, @RequestBody MessageDeleteRequest request) {
         try {
             Message message = messageService.deleteMessage(getCurrentUser(), conversationId, request);
 
-            return ResponseCreator.ok("Message deleted successfully");
+            return "Message deleted successfully";
 
         } catch (Exception e) {
-            return ResponseCreator.badRequest(e.getMessage());
+            logger.error("An error occurred while deleting message", e);
+            throw new BadRequestException("An error occurred while deleting message -> " + e.getMessage());
         }
     }
 

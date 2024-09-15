@@ -1,5 +1,8 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.exceptions.AlreadyDefinedException;
+import com.tolgahan.chat_app.exceptions.BadRequestException;
+import com.tolgahan.chat_app.exceptions.InvalidArgumentException;
 import com.tolgahan.chat_app.model.RefreshToken;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.request.LoginRequest;
@@ -19,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -54,11 +58,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
+    public AuthResponse login(@RequestBody LoginRequest loginRequest) {
 
         if (loginRequest == null || loginRequest.getUsername() == null || loginRequest.getPassword() == null) {
             logger.error("Invalid login request");
-            return ResponseCreator.badRequest("Please provide username and password");
+            throw new InsufficientAuthenticationException("Please provide username and password");
         }
 
         try {
@@ -76,30 +80,28 @@ public class AuthController {
             response.setUserId(user.getId());
             response.setAccessToken("Bearer " + jwtToken);
             response.setRefreshToken(refreshTokenService.generateRefreshToken(user));
-            return ResponseCreator.ok(response);
+            return response;
         } catch (Exception e) {
             logger.error("Error logging in: {}", e.getMessage());
-            return ResponseCreator.badRequest(e.toString());
+            throw new BadRequestException(e.getMessage());
         }
-
-
     }
 
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest registerRequest) {
+    public AuthResponse register(@RequestBody RegisterRequest registerRequest) {
 
         if (!RegistrationValidator.isUserValid(registerRequest)) {
             logger.error("Invalid user data");
-            return ResponseCreator.badRequest("Invalid user data.");
+            throw new InvalidArgumentException("Invalid user data");
         }
         if (userService.getUserByUsername(registerRequest.getUsername()) != null) {
             logger.error("Username already in use");
-            return ResponseCreator.badRequest("Username already in use.");
+            throw new AlreadyDefinedException("Username already in use.");
         }
         if (emailService.getUserByEmail(registerRequest.getEmail()) != null) {
             logger.error("Email already in use");
-            return ResponseCreator.badRequest("Email already in use.");
+            throw new AlreadyDefinedException("Email already in use.");
         }
 
         try {
@@ -120,19 +122,19 @@ public class AuthController {
             response.setUserId(user.getId());
             response.setAccessToken("Bearer " + jwtToken);
             response.setRefreshToken(refreshTokenService.generateRefreshToken(user));
-            return ResponseCreator.ok(response);
+            return response;
         } catch (Exception e) {
             logger.error("Error registering user: {}", e.getMessage());
-            return ResponseCreator.internalServerError(e.toString());
+            throw new BadRequestException(e.getMessage());
         }
 
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<String> refresh(@RequestBody RefreshTokenRequest refreshRequest) {
+    public AuthResponse refresh(@RequestBody RefreshTokenRequest refreshRequest) {
         if (refreshRequest == null || refreshRequest.getUserId() == null || refreshRequest.getRefreshToken() == null) {
             logger.error("Invalid refresh request");
-            return ResponseCreator.badRequest("Please provide user id and refresh token");
+            throw new InvalidArgumentException("Please provide user id and refresh token");
         }
         logger.info("Refreshing token for user: {}", refreshRequest.getUserId());
         try {
@@ -146,14 +148,14 @@ public class AuthController {
                 response.setAccessToken("Bearer " + jwtToken);
                 response.setRefreshToken(token.getToken());
                 response.setUserId(user.getId());
-                return ResponseCreator.ok(response);
+                return response;
             } else {
                 logger.error("Invalid refresh token");
-                return ResponseCreator.unauthorized("Invalid refresh token");
+                throw new InvalidArgumentException("Invalid refresh token");
             }
         } catch (Exception e) {
             logger.error("Error refreshing token: {}", e.getMessage());
-            return ResponseCreator.internalServerError(e.toString());
+            throw new BadRequestException(e.getMessage());
         }
 
 
@@ -161,7 +163,7 @@ public class AuthController {
 
 
     @GetMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletRequest request) {
+    public String logout(HttpServletRequest request) {
 
         try {
             User user = getCurrentUser();
@@ -171,29 +173,26 @@ public class AuthController {
             if (refreshToken != null) {
                 tokenBlackListService.add(token);
                 refreshTokenService.deleteRefreshToken(refreshToken);
-                return ResponseCreator.ok("Logout successful");
+                return "Logout successful";
             } else {
-                logger.error("Invalid refresh token");
-                return ResponseCreator.unauthorized("Invalid refresh token");
+                logger.error("Refresh token not found");
+                throw new InvalidArgumentException("Refresh token not found");
             }
         } catch (Exception e) {
             logger.error("Error logging out: {}", e.getMessage());
-            return ResponseCreator.internalServerError(e.toString());
+            throw new BadRequestException(e.getMessage());
         }
 
     }
 
     @GetMapping("/isTokenValid")
-    public ResponseEntity<String> isTokenValid() {
+    public Boolean isTokenValid() {
         try {
             SecurityContext context = SecurityContextHolder.getContext();
-            if (context.getAuthentication() == null) {
-                return ResponseCreator.ok(false);
-            }
-            return ResponseCreator.ok(true);
+            return context.getAuthentication() != null;
         } catch (Exception e) {
             logger.error("Error checking token validity: {}", e.getMessage());
-            return ResponseCreator.internalServerError(e.toString());
+            throw new BadRequestException(e.getMessage());
         }
     }
 
@@ -209,7 +208,7 @@ public class AuthController {
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());
         }
-        return null; // Kullanıcı doğrulanmamışsa
+        return null;
     }
 
 

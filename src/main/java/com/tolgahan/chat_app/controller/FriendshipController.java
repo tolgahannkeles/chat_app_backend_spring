@@ -1,6 +1,8 @@
 package com.tolgahan.chat_app.controller;
 
 import com.tolgahan.chat_app.enums.FriendshipStatus;
+import com.tolgahan.chat_app.exceptions.BadRequestException;
+import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Email;
 import com.tolgahan.chat_app.model.Friendship;
 import com.tolgahan.chat_app.model.User;
@@ -41,7 +43,7 @@ public class FriendshipController {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return null;
+                throw new TokenIsNotValidException();
             }
 
             List<User> friends = user.getFriends();
@@ -56,8 +58,8 @@ public class FriendshipController {
 
         } catch (Exception e) {
             logger.error("Error getting friends: {}", e.getMessage());
+            throw new BadRequestException("Error getting friends: " + e.getMessage());
         }
-        return null;
     }
 
     @GetMapping("/{friendId}")
@@ -67,7 +69,7 @@ public class FriendshipController {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return null;
+                throw new TokenIsNotValidException();
             }
             Friendship friendship;
 
@@ -86,8 +88,8 @@ public class FriendshipController {
             return new FriendshipResponse(friendship);
         } catch (Exception e) {
             logger.error("Error getting friendship status with friend: {}", e.getMessage());
+            throw new BadRequestException("Error getting friendship status with friend: " + e.getMessage());
         }
-        return null;
     }
 
 
@@ -98,7 +100,7 @@ public class FriendshipController {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return null;
+                throw new TokenIsNotValidException();
             }
 
             List<Friendship> friendships = user.getReceivedFriendRequests();
@@ -115,8 +117,8 @@ public class FriendshipController {
 
         } catch (Exception e) {
             logger.error("Error getting all friend requests: {}", e.getMessage());
+            throw new BadRequestException("Error getting all friend requests: " + e.getMessage());
         }
-        return null;
     }
 
     @PostMapping("/requests")
@@ -126,15 +128,15 @@ public class FriendshipController {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return null;
+                throw new TokenIsNotValidException();
             }
             friendshipService.sendFriendRequest(user, request.getUserId());
             return true;
 
         } catch (Exception e) {
             logger.error("Error sending friend request: {}", e.getMessage());
+            throw new BadRequestException("Error sending friend request: " + e.getMessage());
         }
-        return null;
     }
 
     @PatchMapping("/requests/{friendId}")
@@ -144,14 +146,14 @@ public class FriendshipController {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return null;
+                throw new TokenIsNotValidException();
             }
 
             Friendship updateFriendship = friendshipService.updateFriendship(user, friendId, request.getStatus());
             return new FriendshipResponse(updateFriendship);
         } catch (Exception e) {
             logger.error("Error changing friendship status: {}", e.getMessage());
-            return null;
+            throw new BadRequestException("Error changing friendship status: " + e.getMessage());
         }
     }
 

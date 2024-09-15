@@ -1,6 +1,9 @@
 package com.tolgahan.chat_app.controller;
 
 import com.tolgahan.chat_app.enums.ConversationType;
+import com.tolgahan.chat_app.exceptions.BadRequestException;
+import com.tolgahan.chat_app.exceptions.ConversationNotFoundException;
+import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.ConversationUser;
 import com.tolgahan.chat_app.model.User;
@@ -11,11 +14,14 @@ import com.tolgahan.chat_app.service.UserService;
 import com.tolgahan.chat_app.utils.ResponseCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,40 +39,46 @@ public class ConversationController {
     }
 
     @GetMapping
-    public ResponseEntity<String> getAllConversations(@RequestParam(name = "type", required = false) ConversationType type) {
-        User user = getCurrentUser();
-        if (user == null) {
-            logger.error("User not found.");
-            return ResponseCreator.notFound(); // Assuming this returns a 404 ResponseEntity
-        }
-
-        List<ConversationResponse> responses;
-        if (type == null) {
-            responses = conversationService.getAllConversations(user).stream()
-                    .map(ConversationResponse::new)
-                    .toList();
-        } else {
-            responses = switch (type) {
-                case CHAT -> conversationService.getAllChats(user).stream()
-                        .map(ConversationResponse::new)
-                        .toList();
-                case GROUP -> conversationService.getAllGroups(user).stream()
-                        .map(ConversationResponse::new)
-                        .toList();
-            };
-        }
-
-        return ResponseCreator.ok(responses);
-    }
-
-
-    @PostMapping("/groups")
-    public ResponseEntity<String> createGroup(@RequestBody CreateGroupRequest createGroupRequest) {
+    public List<ConversationResponse> getAllConversations(@RequestParam(name = "type", required = false) ConversationType type) {
         try {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return ResponseCreator.notFound();
+                throw new TokenIsNotValidException();
+            }
+
+            List<ConversationResponse> responses;
+            if (type == null) {
+                responses = conversationService.getAllConversations(user).stream()
+                        .map(ConversationResponse::new)
+                        .toList();
+            } else {
+                responses = switch (type) {
+                    case CHAT -> conversationService.getAllChats(user).stream()
+                            .map(ConversationResponse::new)
+                            .toList();
+                    case GROUP -> conversationService.getAllGroups(user).stream()
+                            .map(ConversationResponse::new)
+                            .toList();
+                };
+            }
+
+            return responses;
+        } catch (Exception e) {
+            logger.error("Error -> " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
+        }
+
+    }
+
+
+    @PostMapping("/groups")
+    public ConversationResponse createGroup(@RequestBody CreateGroupRequest createGroupRequest) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                logger.error("User not found.");
+                throw new TokenIsNotValidException();
             }
             Conversation conversation = new Conversation();
             conversation.setConversationType(ConversationType.GROUP);
@@ -90,67 +102,73 @@ public class ConversationController {
 
             Conversation saved = conversationService.createGroupConversation(conversation);
 
-            return ResponseCreator.ok(new ConversationResponse(saved));
+            return new ConversationResponse(saved);
         } catch (Exception e) {
             logger.error("Error -> " + e.getMessage());
-            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
         }
     }
 
     @GetMapping("/groups/{conversationId}")
-    public ResponseEntity<String> getGroupById(@PathVariable(name = "conversationId") UUID conversationId) {
-        User user = getCurrentUser();
-        if (user == null) {
-            logger.error("User not found.");
-            return ResponseCreator.notFound();
-        }
-
-        Conversation conversation = conversationService.getConversationById(user, conversationId);
-        if (conversation == null) {
-            logger.error("Conversation not found.");
-            return ResponseCreator.notFound();
-        }
-
-        return ResponseCreator.ok(new ConversationResponse(conversation));
-
-    }
-
-    @DeleteMapping("/groups/{conversationId}")
-    public ResponseEntity<String> leaveGroup(@PathVariable(name = "conversationId") UUID conversationId) {
+    public ConversationResponse getGroupById(@PathVariable(name = "conversationId") UUID conversationId) {
         try {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return ResponseCreator.notFound();
+                throw new TokenIsNotValidException();
+            }
+
+            Conversation conversation = conversationService.getConversationById(user, conversationId);
+            if (conversation == null) {
+                logger.error("Conversation not found.");
+                throw new ConversationNotFoundException("Conversation not found.");
+            }
+
+            return new ConversationResponse(conversation);
+        } catch (Exception e) {
+            logger.error("Error -> " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
+        }
+
+
+    }
+
+    @DeleteMapping("/groups/{conversationId}")
+    public String leaveGroup(@PathVariable(name = "conversationId") UUID conversationId) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                logger.error("User not found.");
+                throw new TokenIsNotValidException();
             }
             conversationService.leaveGroup(user, conversationId);
-            return ResponseCreator.ok("Left group successfully");
-        }catch (Exception e){
+            return "Left group successfully";
+        } catch (Exception e) {
             logger.error("Error -> " + e.getMessage());
-            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
         }
 
     }
 
     @PatchMapping("/groups/{conversationId}")
-    public ResponseEntity<String> addParticipant(@PathVariable(name = "conversationId") UUID conversationId, @RequestBody UUID participantId) {
+    public String addParticipant(@PathVariable(name = "conversationId") UUID conversationId, @RequestBody UUID participantId) {
         try {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
-                return ResponseCreator.notFound();
+                throw new TokenIsNotValidException();
             }
             User participant = userService.getUserById(participantId);
             if (participant == null) {
                 logger.error("Participant not found.");
-                return ResponseCreator.notFound();
+
             }
 
             conversationService.addParticipant(user, conversationId, participant);
-            return ResponseCreator.ok("Participant added successfully");
+            return "Participant added successfully";
         } catch (Exception e) {
             logger.error("Error -> " + e.getMessage());
-            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+            throw new BadRequestException(e.getMessage());
         }
 
     }

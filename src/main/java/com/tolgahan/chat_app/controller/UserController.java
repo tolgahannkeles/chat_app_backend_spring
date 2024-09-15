@@ -2,6 +2,8 @@ package com.tolgahan.chat_app.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
+import com.tolgahan.chat_app.exceptions.UserNotFoundException;
 import com.tolgahan.chat_app.model.Email;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.repository.EmailRepository;
@@ -51,41 +53,41 @@ public class UserController {
     }
 
     @GetMapping("/{username}")
-    public ResponseEntity<String> getUserByUsername(@PathVariable String username) {
+    public UserResponse getUserByUsername(@PathVariable String username) {
         try {
             logger.info("Getting user with username: {}", username);
             User user = userService.getUserByUsername(username);
             if (user == null) {
                 logger.error("User not found with username: {}", username);
-                return ResponseCreator.notFound();
+                throw new UserNotFoundException("User not found with username: " + username);
             }
-            return ResponseCreator.ok(new UserResponse(user));
+            return new UserResponse(user);
         } catch (Exception e) {
             logger.error("Error getting user: {}", e.getMessage());
-            return ResponseCreator.internalServerError("Error getting user: " + e.getMessage());
+            throw new UserNotFoundException("Error getting user: " + e.getMessage());
         }
     }
 
 
     @GetMapping("/search/{username}")
-    public ResponseEntity<String> searchUserByUsername(@PathVariable String username) {
+    public List<FriendResponse> searchUserByUsername(@PathVariable String username) {
         try {
             logger.info("Getting users starting with the username: {}", username);
             User currentUser = getCurrentUser();
             if(currentUser == null) {
                 logger.error("Your session has expired.");
-                return ResponseCreator.unauthorized("Your session has expired.");
+                throw new TokenIsNotValidException();
             }
-            List<User> user = userService.findUserStartingWith(username);
-            if (user == null) {
+            List<User> users = userService.findUserStartingWith(username);
+            if (users == null) {
                 logger.error("User not found with username: {}", username);
-                return ResponseCreator.notFound();
+                throw new UserNotFoundException("User not found with username: " + username);
             }
 
 
 
             List<FriendResponse> responses= new ArrayList<>();
-            user.forEach(user1 -> {
+            users.forEach(user1 -> {
                 FriendResponse response = new FriendResponse();
                 response.setId(user1.getId());
                 response.setUsername(user1.getUsername());
@@ -94,24 +96,24 @@ public class UserController {
                 responses.add(response);
             });
 
-            return ResponseCreator.ok(responses);
+            return responses;
         } catch (Exception e) {
             logger.error("Error getting user: {}", e.getMessage());
-            return ResponseCreator.internalServerError("Error getting user: " + e.getMessage());
+            throw new UserNotFoundException("Error getting user: " + e.getMessage());
         }
     }
 
 
 
     @GetMapping("/all")
-    public ResponseEntity<String> all() {
+    public List<UserResponse> all() {
         try {
             logger.info("Getting all users");
             List<UserResponse> response= userService.getAllUsers().stream().map(UserResponse::new).toList();
-            return ResponseCreator.ok(response);
+            return response;
         } catch (Exception e) {
             logger.error("Error getting all users: {}", e.getMessage());
-            return ResponseCreator.internalServerError("Error: " + e.getMessage());
+            throw new UserNotFoundException("Error getting all users: " + e.getMessage());
         }
 
     }

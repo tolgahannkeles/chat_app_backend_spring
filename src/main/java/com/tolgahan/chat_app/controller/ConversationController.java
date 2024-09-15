@@ -11,17 +11,12 @@ import com.tolgahan.chat_app.request.CreateGroupRequest;
 import com.tolgahan.chat_app.response.ConversationResponse;
 import com.tolgahan.chat_app.service.ConversationService;
 import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +34,7 @@ public class ConversationController {
     }
 
     @GetMapping
-    public List<ConversationResponse> getAllConversations(@RequestParam(name = "type", required = false) ConversationType type) {
+    public List<ConversationResponse> getAllConversationsWithParams(@RequestParam(name = "type", required = false) ConversationType type) {
         try {
             User user = getCurrentUser();
             if (user == null) {

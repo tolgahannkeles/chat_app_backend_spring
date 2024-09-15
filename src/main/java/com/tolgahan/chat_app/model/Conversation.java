@@ -1,6 +1,7 @@
 package com.tolgahan.chat_app.model;
 
 import com.tolgahan.chat_app.enums.ConversationType;
+import com.tolgahan.chat_app.request.MessageRequest;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -58,6 +59,10 @@ public class Conversation {
 
     public List<User> getUsers() {
         return conversationUsers.stream().map(ConversationUser::getUser).collect(Collectors.toList());
+    }
+
+    public Message getLastMessage(){
+        return messages.get(messages.size()-1);
     }
 
 

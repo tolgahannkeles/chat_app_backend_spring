@@ -1,9 +1,7 @@
 package com.tolgahan.chat_app.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tolgahan.chat_app.model.RefreshToken;
 import com.tolgahan.chat_app.model.User;
-import com.tolgahan.chat_app.repository.RoleRepository;
 import com.tolgahan.chat_app.request.LoginRequest;
 import com.tolgahan.chat_app.request.RefreshTokenRequest;
 import com.tolgahan.chat_app.request.RegisterRequest;
@@ -18,7 +16,6 @@ import com.tolgahan.chat_app.validation.RegistrationValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.AuthenticationManager;

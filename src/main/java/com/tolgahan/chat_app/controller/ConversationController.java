@@ -5,23 +5,18 @@ import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.ConversationUser;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.request.CreateGroupRequest;
-import com.tolgahan.chat_app.request.PrivateConversationRequest;
 import com.tolgahan.chat_app.response.ConversationResponse;
-import com.tolgahan.chat_app.security.JwtTokenProvider;
 import com.tolgahan.chat_app.service.ConversationService;
 import com.tolgahan.chat_app.service.UserService;
 import com.tolgahan.chat_app.utils.ResponseCreator;
-import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,100 +24,135 @@ import java.util.UUID;
 @RequestMapping("/api/conversation")
 public class ConversationController {
     private final Logger logger = LoggerFactory.getLogger(ConversationController.class);
-    private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final ConversationService conversationService;
 
-    public ConversationController(JwtTokenProvider jwtTokenProvider, UserService userService, ConversationService conversationService) {
-        this.jwtTokenProvider = jwtTokenProvider;
+    public ConversationController(UserService userService, ConversationService conversationService) {
         this.userService = userService;
         this.conversationService = conversationService;
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<String> getAllConversations() {
+    @GetMapping
+    public ResponseEntity<String> getAllConversations(@RequestParam(name = "type", required = false) ConversationType type) {
         User user = getCurrentUser();
         if (user == null) {
             logger.error("User not found.");
-            return ResponseCreator.notFound();
+            return ResponseCreator.notFound(); // Assuming this returns a 404 ResponseEntity
         }
-        List<ConversationResponse> responses = new ArrayList<>();
-        user.getConversations().forEach(conversation -> {
-            ConversationResponse conversationResponse = new ConversationResponse();
-            conversationResponse.setId(conversation.getId());
-            conversationResponse.setTitle(conversation.getTitle());
-            responses.add(conversationResponse);
-        });
+
+        List<ConversationResponse> responses;
+        if (type == null) {
+            responses = conversationService.getAllConversations(user).stream()
+                    .map(ConversationResponse::new)
+                    .toList();
+        } else {
+            responses = switch (type) {
+                case CHAT -> conversationService.getAllChats(user).stream()
+                        .map(ConversationResponse::new)
+                        .toList();
+                case GROUP -> conversationService.getAllGroups(user).stream()
+                        .map(ConversationResponse::new)
+                        .toList();
+            };
+        }
+
         return ResponseCreator.ok(responses);
     }
 
-    @GetMapping("/chats")
-    public ResponseEntity<String> getAllChats() {
-        User user = getCurrentUser();
-        if (user == null) {
-            logger.error("User not found.");
-            return ResponseCreator.notFound();
-        }
-        List<ConversationResponse> response = new ArrayList<>();
-        user.getConversations().forEach(conversation -> {
-            if (conversation.getConversationType().equals(ConversationType.CHAT)) {
-                ConversationResponse conversationResponse = new ConversationResponse();
-                conversationResponse.setId(conversation.getId());
-                conversationResponse.setTitle(conversation.getTitle());
-                response.add(conversationResponse);
-            }
-        });
-        return ResponseCreator.ok(response);
-    }
-
-
-    @GetMapping("/groups")
-    public ResponseEntity<String> getAllGroups() {
-        User user = getCurrentUser();
-        if (user == null) {
-            logger.error("User not found.");
-            return ResponseCreator.notFound();
-        }
-        List<ConversationResponse> response = new ArrayList<>();
-        user.getConversations().forEach(conversation -> {
-            if (conversation.getConversationType().equals(ConversationType.GROUP)) {
-                ConversationResponse conversationResponse = new ConversationResponse();
-                conversationResponse.setId(conversation.getId());
-                conversationResponse.setTitle(conversation.getTitle());
-                response.add(conversationResponse);
-            }
-        });
-        return ResponseCreator.ok(response);
-    }
 
     @PostMapping("/groups")
-    public ResponseEntity<String> createChat(@RequestBody CreateGroupRequest createGroupRequest) {
+    public ResponseEntity<String> createGroup(@RequestBody CreateGroupRequest createGroupRequest) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                logger.error("User not found.");
+                return ResponseCreator.notFound();
+            }
+            Conversation conversation = new Conversation();
+            conversation.setConversationType(ConversationType.GROUP);
+            conversation.setTitle(createGroupRequest.getTitle());
+            conversation.setCreator(user);
+            conversation.getConversationUsers().add(new ConversationUser(user, conversation));
+
+            createGroupRequest.getParticipants().forEach(id -> {
+                        try {
+                            User participant = userService.getUserById(id);
+                            if (participant != null) {
+                                conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error -> " + e.getMessage());
+                        }
+
+                    }
+            );
+
+
+            Conversation saved = conversationService.createGroupConversation(conversation);
+
+            return ResponseCreator.ok(new ConversationResponse(saved));
+        } catch (Exception e) {
+            logger.error("Error -> " + e.getMessage());
+            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/groups/{conversationId}")
+    public ResponseEntity<String> getGroupById(@PathVariable(name = "conversationId") UUID conversationId) {
         User user = getCurrentUser();
         if (user == null) {
             logger.error("User not found.");
             return ResponseCreator.notFound();
         }
-        Conversation conversation = new Conversation();
-        conversation.setConversationType(ConversationType.GROUP);
-        conversation.setTitle(createGroupRequest.getTitle());
-        conversation.setCreator(user);
-        conversation.getConversationUsers().add(new ConversationUser(user, conversation));
 
-        createGroupRequest.getUsernames().forEach(username -> {
-                    User participant = userService.getUserByUsername(username);
-                    if (participant != null) {
-                        conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
-                    }
-                }
-        );
+        Conversation conversation = conversationService.getConversationById(user, conversationId);
+        if (conversation == null) {
+            logger.error("Conversation not found.");
+            return ResponseCreator.notFound();
+        }
 
+        return ResponseCreator.ok(new ConversationResponse(conversation));
 
-        Conversation saved = conversationService.createGroupConversation(conversation);
-        ConversationResponse response = new ConversationResponse();
-        response.setId(saved.getId());
-        response.setTitle(saved.getTitle());
-        System.out.println(response);
-        return ResponseCreator.ok(response);
+    }
+
+    @DeleteMapping("/groups/{conversationId}")
+    public ResponseEntity<String> leaveGroup(@PathVariable(name = "conversationId") UUID conversationId) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                logger.error("User not found.");
+                return ResponseCreator.notFound();
+            }
+            conversationService.leaveGroup(user, conversationId);
+            return ResponseCreator.ok("Left group successfully");
+        }catch (Exception e){
+            logger.error("Error -> " + e.getMessage());
+            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+        }
+
+    }
+
+    @PatchMapping("/groups/{conversationId}")
+    public ResponseEntity<String> addParticipant(@PathVariable(name = "conversationId") UUID conversationId, @RequestBody UUID participantId) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                logger.error("User not found.");
+                return ResponseCreator.notFound();
+            }
+            User participant = userService.getUserById(participantId);
+            if (participant == null) {
+                logger.error("Participant not found.");
+                return ResponseCreator.notFound();
+            }
+
+            conversationService.addParticipant(user, conversationId, participant);
+            return ResponseCreator.ok("Participant added successfully");
+        } catch (Exception e) {
+            logger.error("Error -> " + e.getMessage());
+            return ResponseCreator.badRequest("Error -> " + e.getMessage());
+        }
+
     }
 
 
@@ -131,7 +161,7 @@ public class ConversationController {
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());
         }
-        return null; // Kullanıcı doğrulanmamışsa
+        return null;
     }
 
 

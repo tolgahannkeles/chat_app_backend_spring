@@ -59,11 +59,7 @@ public class UserController {
                 logger.error("User not found with username: {}", username);
                 return ResponseCreator.notFound();
             }
-            UserResponse response = new UserResponse();
-            response.setId(user.getId());
-            response.setUsername(user.getUsername());
-            response.setEmail(emailService.getEmailsByUser(user));
-            return ResponseCreator.ok(response);
+            return ResponseCreator.ok(new UserResponse(user));
         } catch (Exception e) {
             logger.error("Error getting user: {}", e.getMessage());
             return ResponseCreator.internalServerError("Error getting user: " + e.getMessage());
@@ -111,14 +107,7 @@ public class UserController {
     public ResponseEntity<String> all() {
         try {
             logger.info("Getting all users");
-            List<UserResponse> response= userService.getAllUsers().stream().map(user -> {
-                UserResponse userResponse = new UserResponse();
-                userResponse.setId(user.getId());
-                userResponse.setUsername(user.getUsername());
-                userResponse.setEmail(emailService.getEmailsByUser(user));
-                return userResponse;
-
-            }).toList();
+            List<UserResponse> response= userService.getAllUsers().stream().map(UserResponse::new).toList();
             return ResponseCreator.ok(response);
         } catch (Exception e) {
             logger.error("Error getting all users: {}", e.getMessage());

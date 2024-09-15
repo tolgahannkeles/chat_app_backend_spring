@@ -7,5 +7,5 @@ import java.util.UUID;
 @Data
 public class CreateGroupRequest {
     private String title;
-    private List<String> usernames;
+    private List<UUID> participants;
 }

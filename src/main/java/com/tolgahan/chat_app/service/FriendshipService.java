@@ -5,7 +5,6 @@ import com.tolgahan.chat_app.model.Friendship;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.repository.FriendshipRepository;
 import com.tolgahan.chat_app.repository.UserRepository;
-import com.tolgahan.chat_app.request.friendship.FriendshipUpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,13 +16,11 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final Logger logger = LoggerFactory.getLogger(FriendshipService.class);
-    private final UserService userService;
 
 
-    public FriendshipService(FriendshipRepository friendshipRepository, UserRepository userRepository, UserService userService) {
+    public FriendshipService(FriendshipRepository friendshipRepository, UserRepository userRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
-        this.userService = userService;
     }
 
     public FriendshipStatus getFriendshipStatus(UUID senderId, UUID receiverId) {
@@ -126,7 +123,11 @@ public class FriendshipService {
         if (friendship == null) {
             friendship = getFriendship(blockedId, local.getId());
             if (friendship == null) {
-                saveFriendship(new Friendship(local, userService.getUserById(blockedId), FriendshipStatus.BLOCKED));
+                User blocked = userRepository.findUserById(blockedId).orElseThrow(() -> {
+                    logger.error("Blocked user not found");
+                    return new RuntimeException("Blocked user not found");
+                });
+                saveFriendship(new Friendship(local, blocked, FriendshipStatus.BLOCKED));
                 return getFriendship(local.getId(), blockedId);
             }
 

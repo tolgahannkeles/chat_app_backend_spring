@@ -24,8 +24,10 @@ public class Message {
     private Conversation conversation;
 
     private String message;
-    private Boolean isDeleted;
-    private Boolean isRead;
+    @Column(columnDefinition = "boolean default false", nullable = false)
+    private Boolean isDeleted = false;
+    @Column(columnDefinition = "boolean default false", nullable = false)
+    private Boolean isRead = false;
     private Date sentAt;
 
     @Enumerated(EnumType.STRING)

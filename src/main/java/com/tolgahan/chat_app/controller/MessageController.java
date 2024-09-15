@@ -1,8 +1,10 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.enums.DeletionType;
 import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.Message;
 import com.tolgahan.chat_app.model.User;
+import com.tolgahan.chat_app.request.MessageDeleteRequest;
 import com.tolgahan.chat_app.request.MessageRequest;
 import com.tolgahan.chat_app.response.MessageResponse;
 import com.tolgahan.chat_app.service.ConversationService;
@@ -29,6 +31,7 @@ public class MessageController {
     private final ConversationService conversationService;
     private final MessageService messageService;
     private final Logger logger = LoggerFactory.getLogger(MessageController.class);
+
     public MessageController(UserService userService, ConversationService conversationService, MessageService messageService) {
         this.userService = userService;
         this.conversationService = conversationService;
@@ -42,21 +45,7 @@ public class MessageController {
         }
 
         try {
-            Conversation conversation = conversationService.getConversationById(conversationId);
-            User user = getCurrentUser();
-
-            if (conversation == null || user == null) {
-                return ResponseEntity.badRequest().body("Conversation or user not found");
-            }
-
-            Message message = new Message();
-            message.setMessage(messageRequest.getMessage());
-            message.setSentAt(messageRequest.getDate());
-            message.setConversation(conversation);
-            message.setSender(user);
-
-            messageService.sendMessage(message);
-
+            messageService.sendMessage(getCurrentUser(), conversationId, messageRequest);
             return ResponseCreator.ok("Message sent successfully");
 
         } catch (Exception e) {
@@ -65,32 +54,39 @@ public class MessageController {
         }
     }
 
-    @GetMapping("{conversationId}")
+    @GetMapping("/{conversationId}")
     public ResponseEntity<String> getMessages(@PathVariable UUID conversationId) {
-        if (conversationId == null) {
-            return ResponseEntity.badRequest().body("Conversation id can not be null");
-        }
-
         try {
-            Conversation conversation = conversationService.getConversationById(conversationId);
-
-            if (conversation == null) {
-                return ResponseEntity.badRequest().body("Conversation not found");
-            }
             List<MessageResponse> response = new ArrayList<>();
-            conversation.getMessages().forEach(message -> {
-                MessageResponse messageResponse = new MessageResponse();
-                messageResponse.setMessage(message.getMessage());
-                messageResponse.setSender(message.getSender().getUsername());
-                messageResponse.setDate(message.getSentAt());
-                response.add(messageResponse);
+            User user = getCurrentUser();
+            if (user == null) {
+                return ResponseCreator.badRequest("User not found");
+            }
+            messageService.getMessages(getCurrentUser(), conversationId).forEach(message -> {
+                if (message.getSender().getId().equals(user.getId()) && message.getIsDeleted() && message.getDeletionType().equals(DeletionType.ME)) {
+                    message.setMessage("This message was deleted");
+                }else if (message.getIsDeleted() && message.getDeletionType().equals(DeletionType.EVERYONE)){
+                    message.setMessage("This message was deleted");
+                }
+                response.add(new MessageResponse(message));
             });
-
 
             return ResponseCreator.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("An error occurred while getting messages");
+            return ResponseCreator.badRequest(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{conversationId}")
+    public ResponseEntity<String> deleteMessage(@PathVariable UUID conversationId, @RequestBody MessageDeleteRequest request) {
+        try {
+            Message message = messageService.deleteMessage(getCurrentUser(), conversationId, request);
+
+            return ResponseCreator.ok("Message deleted successfully");
+
+        } catch (Exception e) {
+            return ResponseCreator.badRequest(e.getMessage());
         }
     }
 

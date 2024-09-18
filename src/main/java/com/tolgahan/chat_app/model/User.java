@@ -39,14 +39,11 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    @ToString.Exclude
     private List<Role> roles = new ArrayList<>();
 
-    @ToString.Exclude
     @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Friendship> sentFriendRequests = new ArrayList<>();
 
-    @ToString.Exclude
     @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Friendship> receivedFriendRequests = new ArrayList<>();
 
@@ -84,8 +81,7 @@ public class User {
     }
 
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<ConversationUser> conversationUsers= new ArrayList<>();
 
     public List<Conversation> getConversations() {

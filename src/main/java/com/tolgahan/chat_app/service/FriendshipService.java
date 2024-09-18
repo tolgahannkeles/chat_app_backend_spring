@@ -25,10 +25,11 @@ public class FriendshipService {
 
     public FriendshipStatus getFriendshipStatus(UUID senderId, UUID receiverId) {
         Friendship friendship = friendshipRepository.getFriendshipBySenderIdAndReceiverId(senderId, receiverId).orElse(null);
-        if (friendship != null) {
-            return friendship.getStatus();
+        if (friendship == null) {
+            friendship = friendshipRepository.getFriendshipBySenderIdAndReceiverId(receiverId, senderId).orElse(null);
+            return friendship == null ? null : friendship.getStatus();
         }
-        return null;
+        return friendship.getStatus();
     }
 
     public Friendship getFriendship(UUID senderId, UUID receiverId) {
@@ -48,7 +49,14 @@ public class FriendshipService {
     }
 
     public void sendFriendRequest(User sender, UUID receiverId) {
-
+        if (sender == null) {
+            logger.error("Sender not found");
+            throw new RuntimeException("Sender not found");
+        }
+        if(sender.getId().equals(receiverId)){
+            logger.error("Sender and receiver can not be the same user");
+            throw new RuntimeException("Sender and receiver can not be the same user");
+        }
         User receiver = userRepository.findUserById(receiverId).orElseThrow(() -> {
             logger.error("Receiver not found");
             return new RuntimeException("Receiver not found");

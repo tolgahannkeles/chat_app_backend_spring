@@ -74,7 +74,7 @@ public class UserController {
         try {
             logger.info("Getting users starting with the username: {}", username);
             User currentUser = getCurrentUser();
-            if(currentUser == null) {
+            if (currentUser == null) {
                 logger.error("Your session has expired.");
                 throw new TokenIsNotValidException();
             }
@@ -85,9 +85,9 @@ public class UserController {
             }
 
 
-
-            List<FriendResponse> responses= new ArrayList<>();
+            List<FriendResponse> responses = new ArrayList<>();
             users.forEach(user1 -> {
+                if (user1.getId().equals(currentUser.getId())) return;
                 FriendResponse response = new FriendResponse();
                 response.setId(user1.getId());
                 response.setUsername(user1.getUsername());
@@ -104,12 +104,11 @@ public class UserController {
     }
 
 
-
     @GetMapping("/all")
     public List<UserResponse> all() {
         try {
             logger.info("Getting all users");
-            List<UserResponse> response= userService.getAllUsers().stream().map(UserResponse::new).toList();
+            List<UserResponse> response = userService.getAllUsers().stream().map(UserResponse::new).toList();
             return response;
         } catch (Exception e) {
             logger.error("Error getting all users: {}", e.getMessage());
@@ -118,11 +117,20 @@ public class UserController {
 
     }
 
-    @GetMapping
-    public User getCurrentUser() {
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null; // Kullanıcı doğrulanmamışsa
+    }
+
+    @GetMapping
+    public UserResponse getLocalUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+
+            return new UserResponse(userService.getUserByUsername(userDetails.getUsername()));
         }
         return null; // Kullanıcı doğrulanmamışsa
     }

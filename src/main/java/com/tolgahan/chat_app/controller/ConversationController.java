@@ -11,6 +11,7 @@ import com.tolgahan.chat_app.request.CreateGroupRequest;
 import com.tolgahan.chat_app.response.ConversationResponse;
 import com.tolgahan.chat_app.service.ConversationService;
 import com.tolgahan.chat_app.service.UserService;
+import com.tolgahan.chat_app.validation.ConversationValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +45,7 @@ public class ConversationController {
             }
 
             List<ConversationResponse> responses;
+
             if (type == null) {
                 responses = conversationService.getAllConversations(user).stream()
                         .map(ConversationResponse::new)
@@ -75,31 +78,12 @@ public class ConversationController {
                 logger.error("User not found.");
                 throw new TokenIsNotValidException();
             }
-            Conversation conversation = new Conversation();
-            conversation.setConversationType(ConversationType.GROUP);
-            conversation.setTitle(createGroupRequest.getTitle());
-            conversation.setCreator(user);
-            conversation.getConversationUsers().add(new ConversationUser(user, conversation));
-
-            createGroupRequest.getParticipants().forEach(id -> {
-                        try {
-                            User participant = userService.getUserById(id);
-                            if (participant != null) {
-                                conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
-                            }
-                        } catch (Exception e) {
-                            logger.error("Error -> " + e.getMessage());
-                        }
-
-                    }
-            );
-
-
-            Conversation saved = conversationService.createGroupConversation(conversation);
+            ConversationValidator.validateTitle(createGroupRequest.getTitle());
+            Conversation saved = conversationService.createGroupConversation(user, createGroupRequest.getTitle(), createGroupRequest.getParticipants());
 
             return new ConversationResponse(saved);
         } catch (Exception e) {
-            logger.error("Error -> " + e.getMessage());
+            logger.error("Error creating group -> " + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
     }

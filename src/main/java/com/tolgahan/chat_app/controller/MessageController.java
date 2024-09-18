@@ -31,13 +31,11 @@ import java.util.UUID;
 public class MessageController {
 
     private final UserService userService;
-    private final ConversationService conversationService;
     private final MessageService messageService;
     private final Logger logger = LoggerFactory.getLogger(MessageController.class);
 
-    public MessageController(UserService userService, ConversationService conversationService, MessageService messageService) {
+    public MessageController(UserService userService, MessageService messageService) {
         this.userService = userService;
-        this.conversationService = conversationService;
         this.messageService = messageService;
     }
 

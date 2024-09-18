@@ -5,6 +5,7 @@ import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.ConversationUser;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.repository.ConversationRepository;
+import com.tolgahan.chat_app.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,12 +18,38 @@ import java.util.UUID;
 public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final Logger logger = LoggerFactory.getLogger(ConversationService.class);
+    private final UserRepository userRepository;
 
-    public ConversationService(ConversationRepository conversationRepository) {
+    public ConversationService(ConversationRepository conversationRepository, UserRepository userRepository) {
         this.conversationRepository = conversationRepository;
+        this.userRepository = userRepository;
     }
 
-    public Conversation createGroupConversation(Conversation conversation) {
+    public Conversation createGroupConversation(User user, String title, List<UUID> participants) {
+
+        Conversation conversation = new Conversation();
+        conversation.setConversationType(ConversationType.GROUP);
+        conversation.setTitle(title);
+        conversation.setCreator(user);
+        conversation.getConversationUsers().add(new ConversationUser(user, conversation));
+
+        participants.forEach(id -> {
+                    try {
+                        User participant = userRepository.findUserById(id).orElseThrow(() -> {
+                            logger.error("User not found with id -> " + id);
+                            return new RuntimeException("User not found with id -> " + id);
+                        });
+                        if (participant != null) {
+                            conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error -> " + e.getMessage());
+                    }
+
+                }
+        );
+
+
         return conversationRepository.save(conversation);
     }
 
@@ -67,7 +94,7 @@ public class ConversationService {
 
     public void leaveGroup(User user, UUID conversationId) {
         Conversation conversation = getConversationById(user, conversationId);
-        if(conversation==null){
+        if (conversation == null) {
             logger.error("Conversation not found");
             throw new RuntimeException("Conversation not found");
         }
@@ -84,7 +111,7 @@ public class ConversationService {
     }
 
     public void addParticipant(User user, UUID conversationId, User participant) {
-        if(user==null || participant==null){
+        if (user == null || participant == null) {
             logger.error("User or participant not found");
             throw new RuntimeException("User or participant not found");
         }

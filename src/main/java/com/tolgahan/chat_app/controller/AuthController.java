@@ -167,7 +167,7 @@ public class AuthController {
 
         try {
             User user = getCurrentUser();
-            logger.info("Logging out user: {}", user.getId());
+            logger.info("Logging out user: {}", user.getUsername());
             RefreshToken refreshToken = refreshTokenService.getByUserId(user.getId());
             String token = request.getHeader("Authorization").substring(7);
             if (refreshToken != null) {
@@ -194,13 +194,6 @@ public class AuthController {
             logger.error("Error checking token validity: {}", e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-    }
-
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<String> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        logger.error("Invalid request body: {}", ex.getMessage());
-        return ResponseCreator.badRequest("Invalid request body: " + ex.getMessage());
     }
 
     public User getCurrentUser() {

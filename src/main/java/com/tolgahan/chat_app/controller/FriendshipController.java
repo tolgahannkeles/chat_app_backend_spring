@@ -12,8 +12,11 @@ import com.tolgahan.chat_app.response.FriendResponse;
 import com.tolgahan.chat_app.response.FriendshipResponse;
 import com.tolgahan.chat_app.service.FriendshipService;
 import com.tolgahan.chat_app.service.UserService;
+import com.tolgahan.chat_app.utils.ResponseCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -110,7 +113,6 @@ public class FriendshipController {
                 if (friendship.getStatus() == FriendshipStatus.PENDING) {
                     responses.add(new FriendshipResponse(friendship));
                 }
-
             });
 
             return responses;
@@ -156,7 +158,6 @@ public class FriendshipController {
             throw new BadRequestException("Error changing friendship status: " + e.getMessage());
         }
     }
-
 
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

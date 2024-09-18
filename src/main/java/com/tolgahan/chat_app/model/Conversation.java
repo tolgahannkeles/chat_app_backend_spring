@@ -61,8 +61,8 @@ public class Conversation {
         return conversationUsers.stream().map(ConversationUser::getUser).collect(Collectors.toList());
     }
 
-    public Message getLastMessage(){
-        return messages.get(messages.size()-1);
+    public Message getLastMessage() {
+        return messages.isEmpty() ? null : messages.get(messages.size() - 1);
     }
 
 

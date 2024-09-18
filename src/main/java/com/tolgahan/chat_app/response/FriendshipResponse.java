@@ -10,10 +10,12 @@ public class FriendshipResponse {
     Long id;
     UUID userId;
     FriendshipStatus status;
+    String username;
 
     public FriendshipResponse(Friendship friendship) {
         this.id = friendship.getId();
-        this.userId = friendship.getReceiver().getId();
+        this.userId = friendship.getSender().getId();
         this.status = friendship.getStatus();
+        this.username=friendship.getSender().getUsername();
     }
 }

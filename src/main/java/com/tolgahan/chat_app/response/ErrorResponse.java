@@ -1,12 +1,18 @@
 package com.tolgahan.chat_app.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.Date;
+import java.util.UUID;
 @Data
-@AllArgsConstructor
-public class ErrorResponse {
-    private int status;
-    private String message;
-    private long timestamp;
+public class ErrorResponse<T> {
+    private UUID id;
+    private Date timestamp;
+    private T error;
+
+    public ErrorResponse(T error) {
+        this.id = UUID.randomUUID();
+        this.timestamp = new Date();
+        this.error = error;
+    }
 }

@@ -24,11 +24,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    private JwtAuthEntryPoint jwtAuthEntryPoint;
-    private JwtUserDetailService jwtUserDetailService;
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    private JwtTokenProvider jwtTokenProvider;
-    private TokenBlackListService tokenBlackListService;
+    private final JwtAuthEntryPoint jwtAuthEntryPoint;
+    private final JwtUserDetailService jwtUserDetailService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlackListService tokenBlackListService;
 
 
     public SecurityConfig(JwtAuthEntryPoint jwtAuthEntryPoint, JwtUserDetailService jwtUserDetailService, JwtTokenProvider jwtTokenProvider, TokenBlackListService tokenBlackListService) {

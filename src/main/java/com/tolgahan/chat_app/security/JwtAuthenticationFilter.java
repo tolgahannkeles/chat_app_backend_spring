@@ -18,11 +18,10 @@ import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private JwtTokenProvider jwtTokenProvider;
-    private JwtUserDetailService jwtUserDetailService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtUserDetailService jwtUserDetailService;
     private final TokenBlackListService tokenBlackListService;
 
-    @Autowired
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, JwtUserDetailService jwtUserDetailService, TokenBlackListService tokenBlackListService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.jwtUserDetailService = jwtUserDetailService;

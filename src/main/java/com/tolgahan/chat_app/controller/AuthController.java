@@ -1,5 +1,6 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.controller.interfaces.IAuthController;
 import com.tolgahan.chat_app.exceptions.AlreadyDefinedException;
 import com.tolgahan.chat_app.exceptions.BadRequestException;
 import com.tolgahan.chat_app.exceptions.InvalidArgumentException;
@@ -10,17 +11,13 @@ import com.tolgahan.chat_app.request.RefreshTokenRequest;
 import com.tolgahan.chat_app.request.RegisterRequest;
 import com.tolgahan.chat_app.response.AuthResponse;
 import com.tolgahan.chat_app.security.JwtTokenProvider;
-import com.tolgahan.chat_app.service.EmailService;
-import com.tolgahan.chat_app.service.RefreshTokenService;
-import com.tolgahan.chat_app.service.TokenBlackListService;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
-import com.tolgahan.chat_app.validation.RegistrationValidator;
+import com.tolgahan.chat_app.service.interfaces.IEmailService;
+import com.tolgahan.chat_app.service.interfaces.IRefreshTokenService;
+import com.tolgahan.chat_app.service.interfaces.ITokenBlackListService;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,25 +26,29 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
 
-@RestController
-@RequestMapping("/api/auth")
-public class AuthController {
+@Component
+public class AuthController implements IAuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
+    private final IUserService userService;
     private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenService refreshTokenService;
-    private final TokenBlackListService tokenBlackListService;
-    private final EmailService emailService;
+    private final IRefreshTokenService refreshTokenService;
+    private final ITokenBlackListService tokenBlackListService;
+    private final IEmailService emailService;
     private final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
-    public AuthController(AuthenticationManager authenticationManager, UserService userService,
-                          PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, RefreshTokenService refreshTokenService, TokenBlackListService tokenBlackListService, EmailService emailService) {
+    public AuthController(AuthenticationManager authenticationManager,
+                          IUserService userService,
+                          PasswordEncoder passwordEncoder,
+                          JwtTokenProvider jwtTokenProvider,
+                          IRefreshTokenService refreshTokenService,
+                          ITokenBlackListService tokenBlackListService,
+                          IEmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
@@ -57,9 +58,9 @@ public class AuthController {
         this.emailService = emailService;
     }
 
-    @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest loginRequest) {
 
+    @Override
+    public AuthResponse login(LoginRequest loginRequest) {
         if (loginRequest == null || loginRequest.getUsername() == null || loginRequest.getPassword() == null) {
             logger.error("Invalid login request");
             throw new InsufficientAuthenticationException("Please provide username and password");
@@ -87,14 +88,8 @@ public class AuthController {
         }
     }
 
-
-    @PostMapping("/register")
-    public AuthResponse register(@RequestBody RegisterRequest registerRequest) {
-
-        if (!RegistrationValidator.isUserValid(registerRequest)) {
-            logger.error("Invalid user data");
-            throw new InvalidArgumentException("Invalid user data");
-        }
+    @Override
+    public AuthResponse register(RegisterRequest registerRequest) {
         if (userService.getUserByUsername(registerRequest.getUsername()) != null) {
             logger.error("Username already in use");
             throw new AlreadyDefinedException("Username already in use.");
@@ -127,14 +122,14 @@ public class AuthController {
             logger.error("Error registering user: {}", e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
     }
 
-    @PostMapping("/refresh")
-    public AuthResponse refresh(@RequestBody RefreshTokenRequest refreshRequest) {
+
+    @Override
+    public AuthResponse refresh(RefreshTokenRequest refreshRequest) {
         if (refreshRequest == null || refreshRequest.getUserId() == null || refreshRequest.getRefreshToken() == null) {
             logger.error("Invalid refresh request");
-            throw new InvalidArgumentException("Please provide user id and refresh token");
+            throw new InvalidArgumentException("Please provide user userId and refresh token");
         }
         logger.info("Refreshing token for user: {}", refreshRequest.getUserId());
         try {
@@ -158,13 +153,11 @@ public class AuthController {
             throw new BadRequestException(e.getMessage());
         }
 
-
     }
 
 
-    @GetMapping("/logout")
+    @Override
     public String logout(HttpServletRequest request) {
-
         try {
             User user = getCurrentUser();
             logger.info("Logging out user: {}", user.getUsername());
@@ -182,10 +175,10 @@ public class AuthController {
             logger.error("Error logging out: {}", e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
     }
 
-    @GetMapping("/isTokenValid")
+
+    @Override
     public Boolean isTokenValid() {
         try {
             SecurityContext context = SecurityContextHolder.getContext();
@@ -196,7 +189,8 @@ public class AuthController {
         }
     }
 
-    public User getCurrentUser() {
+
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());

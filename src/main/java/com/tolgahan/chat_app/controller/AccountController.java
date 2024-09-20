@@ -1,39 +1,31 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.controller.interfaces.IAccountController;
 import com.tolgahan.chat_app.exceptions.BadRequestException;
 import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Email;
 import com.tolgahan.chat_app.model.Role;
 import com.tolgahan.chat_app.model.User;
-import com.tolgahan.chat_app.request.friendship.FriendshipStatusRequest;
 import com.tolgahan.chat_app.response.AccountResponse;
-import com.tolgahan.chat_app.response.FriendResponse;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-@RestController
-@RequestMapping("/api/account")
-public class AccountController {
+@Component
+public class AccountController implements IAccountController {
     private final Logger logger = LoggerFactory.getLogger(AccountController.class);
-    private final UserService userService;
+    private final IUserService userService;
 
-    public AccountController(UserService userService) {
+    public AccountController(IUserService userService) {
         this.userService = userService;
     }
 
 
-    @GetMapping
+    @Override
     public AccountResponse getUser() {
         try {
             logger.info("Getting account info");
@@ -56,11 +48,13 @@ public class AccountController {
     }
 
 
-    public User getCurrentUser() {
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userService.getUserByUsername(userDetails.getUsername());
         }
         return null; // Kullanıcı doğrulanmamışsa
     }
+
+
 }

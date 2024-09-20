@@ -1,59 +1,50 @@
 package com.tolgahan.chat_app.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.tolgahan.chat_app.controller.interfaces.IUserController;
 import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.exceptions.UserNotFoundException;
-import com.tolgahan.chat_app.model.Email;
 import com.tolgahan.chat_app.model.User;
-import com.tolgahan.chat_app.repository.EmailRepository;
-import com.tolgahan.chat_app.repository.UserRepository;
 import com.tolgahan.chat_app.response.FriendResponse;
 import com.tolgahan.chat_app.response.UserResponse;
-import com.tolgahan.chat_app.security.JwtTokenProvider;
-import com.tolgahan.chat_app.service.EmailService;
-import com.tolgahan.chat_app.service.FriendshipService;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
-import com.tolgahan.chat_app.validation.RegistrationValidator;
-import jakarta.servlet.http.HttpServletRequest;
+import com.tolgahan.chat_app.service.interfaces.IEmailService;
+import com.tolgahan.chat_app.service.interfaces.IFriendshipService;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/user")
-public class UserController {
-    private final UserService userService;
-    private final EmailService emailService;
+@Component
+public class UserController implements IUserController {
+    private final IUserService userService;
+    private final IEmailService emailService;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
-    private final ObjectMapper objectMapper;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final FriendshipService friendshipService;
+    private final IFriendshipService friendshipService;
 
-    @Autowired
-    public UserController(UserService userService, EmailService emailService, ObjectMapper objectMapper, JwtTokenProvider jwtTokenProvider, FriendshipService friendshipService) {
+
+    public UserController(IUserService userService, IEmailService emailService, IFriendshipService friendshipService) {
         this.userService = userService;
         this.emailService = emailService;
-        this.objectMapper = objectMapper;
-        this.jwtTokenProvider = jwtTokenProvider;
         this.friendshipService = friendshipService;
     }
 
-    @GetMapping("/{username}")
-    public UserResponse getUserByUsername(@PathVariable String username) {
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null; // Kullanıcı doğrulanmamışsa
+    }
+
+
+    @Override
+    public UserResponse getUserByUsername(String username) {
         try {
             logger.info("Getting user with username: {}", username);
             User user = userService.getUserByUsername(username);
@@ -68,9 +59,30 @@ public class UserController {
         }
     }
 
+    @Override
+    public UserResponse getLocalUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
 
-    @GetMapping("/search/{username}")
-    public List<FriendResponse> searchUserByUsername(@PathVariable String username) {
+            return new UserResponse(userService.getUserByUsername(userDetails.getUsername()));
+        }
+        return null; // Kullanıcı doğrulanmamışsa
+    }
+
+    @Override
+    public List<UserResponse> all() {
+        try {
+            logger.info("Getting all users");
+            List<UserResponse> response = userService.getAllUsers().stream().map(UserResponse::new).toList();
+            return response;
+        } catch (Exception e) {
+            logger.error("Error getting all users: {}", e.getMessage());
+            throw new UserNotFoundException("Error getting all users: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<FriendResponse> searchUserByUsername(String username) {
         try {
             logger.info("Getting users starting with the username: {}", username);
             User currentUser = getCurrentUser();
@@ -102,38 +114,4 @@ public class UserController {
             throw new UserNotFoundException("Error getting user: " + e.getMessage());
         }
     }
-
-
-    @GetMapping("/all")
-    public List<UserResponse> all() {
-        try {
-            logger.info("Getting all users");
-            List<UserResponse> response = userService.getAllUsers().stream().map(UserResponse::new).toList();
-            return response;
-        } catch (Exception e) {
-            logger.error("Error getting all users: {}", e.getMessage());
-            throw new UserNotFoundException("Error getting all users: " + e.getMessage());
-        }
-
-    }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-            return userService.getUserByUsername(userDetails.getUsername());
-        }
-        return null; // Kullanıcı doğrulanmamışsa
-    }
-
-    @GetMapping
-    public UserResponse getLocalUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-
-            return new UserResponse(userService.getUserByUsername(userDetails.getUsername()));
-        }
-        return null; // Kullanıcı doğrulanmamışsa
-    }
-
-
 }

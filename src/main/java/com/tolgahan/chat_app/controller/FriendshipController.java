@@ -1,5 +1,6 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.controller.interfaces.IFriendshipController;
 import com.tolgahan.chat_app.enums.FriendshipStatus;
 import com.tolgahan.chat_app.exceptions.BadRequestException;
 import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
@@ -10,36 +11,42 @@ import com.tolgahan.chat_app.request.friendship.FriendshipCreateRequest;
 import com.tolgahan.chat_app.request.friendship.FriendshipUpdateRequest;
 import com.tolgahan.chat_app.response.FriendResponse;
 import com.tolgahan.chat_app.response.FriendshipResponse;
-import com.tolgahan.chat_app.service.FriendshipService;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
+import com.tolgahan.chat_app.service.interfaces.IFriendshipService;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/account/friends")
-public class FriendshipController {
+@Component
+public class FriendshipController implements IFriendshipController {
 
-    private final UserService userService;
+    private final IUserService userService;
     private final Logger logger = LoggerFactory.getLogger(FriendshipController.class);
-    private final FriendshipService friendshipService;
+    private final IFriendshipService friendshipService;
 
-    public FriendshipController(UserService userService, FriendshipService friendshipService) {
+    public FriendshipController(IUserService userService, IFriendshipService friendshipService) {
         this.userService = userService;
         this.friendshipService = friendshipService;
     }
 
-    @GetMapping
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null;
+    }
+
+
+    @Override
     public List<FriendResponse> getAllFriends() {
         try {
             logger.info("Getting friends");
@@ -65,8 +72,8 @@ public class FriendshipController {
         }
     }
 
-    @GetMapping("/{friendId}")
-    public FriendshipResponse getStatusWithFriend(@PathVariable("friendId") UUID friendId) {
+    @Override
+    public FriendshipResponse getStatusWithFriend(UUID friendId) {
         try {
             logger.info("Getting friendship status with friend {}", friendId);
             User user = getCurrentUser();
@@ -95,8 +102,7 @@ public class FriendshipController {
         }
     }
 
-
-    @GetMapping("/requests")
+    @Override
     public List<FriendshipResponse> getAllFriendRequests() {
         try {
             logger.info("Getting received friend requests");
@@ -123,8 +129,8 @@ public class FriendshipController {
         }
     }
 
-    @PostMapping("/requests")
-    public Boolean sendFriendRequest(@RequestBody FriendshipCreateRequest request) {
+    @Override
+    public Boolean sendFriendRequest(FriendshipCreateRequest request) {
         try {
             logger.info("Sending friend request");
             User user = getCurrentUser();
@@ -141,8 +147,8 @@ public class FriendshipController {
         }
     }
 
-    @PatchMapping("/requests/{friendId}")
-    public FriendshipResponse updateFriendshipRequestStatus(@PathVariable("friendId") UUID friendId, @RequestBody FriendshipUpdateRequest request) {
+    @Override
+    public FriendshipResponse updateFriendshipRequestStatus(UUID friendId, FriendshipUpdateRequest request) {
         try {
             logger.info("Changing friendship status");
             User user = getCurrentUser();
@@ -158,14 +164,4 @@ public class FriendshipController {
             throw new BadRequestException("Error changing friendship status: " + e.getMessage());
         }
     }
-
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-            return userService.getUserByUsername(userDetails.getUsername());
-        }
-        return null;
-    }
-
-
 }

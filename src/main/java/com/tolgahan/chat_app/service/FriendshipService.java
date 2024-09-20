@@ -5,6 +5,7 @@ import com.tolgahan.chat_app.model.Friendship;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.repository.FriendshipRepository;
 import com.tolgahan.chat_app.repository.UserRepository;
+import com.tolgahan.chat_app.service.interfaces.IFriendshipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 @Service
-public class FriendshipService {
+public class FriendshipService implements IFriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final Logger logger = LoggerFactory.getLogger(FriendshipService.class);
@@ -23,6 +24,7 @@ public class FriendshipService {
         this.userRepository = userRepository;
     }
 
+    @Override
     public FriendshipStatus getFriendshipStatus(UUID senderId, UUID receiverId) {
         Friendship friendship = friendshipRepository.getFriendshipBySenderIdAndReceiverId(senderId, receiverId).orElse(null);
         if (friendship == null) {
@@ -32,28 +34,33 @@ public class FriendshipService {
         return friendship.getStatus();
     }
 
+    @Override
     public Friendship getFriendship(UUID senderId, UUID receiverId) {
         return friendshipRepository.getFriendshipBySenderIdAndReceiverId(senderId, receiverId).orElse(null);
     }
 
+    @Override
     public Friendship getFriendshipById(Long id) {
         return friendshipRepository.findById(id).orElse(null);
     }
 
+    @Override
     public void saveFriendship(Friendship friendship) {
         friendshipRepository.save(friendship);
     }
 
+    @Override
     public void deleteFriendship(Friendship friendship) {
         friendshipRepository.delete(friendship);
     }
 
+    @Override
     public void sendFriendRequest(User sender, UUID receiverId) {
         if (sender == null) {
             logger.error("Sender not found");
             throw new RuntimeException("Sender not found");
         }
-        if(sender.getId().equals(receiverId)){
+        if (sender.getId().equals(receiverId)) {
             logger.error("Sender and receiver can not be the same user");
             throw new RuntimeException("Sender and receiver can not be the same user");
         }
@@ -70,6 +77,7 @@ public class FriendshipService {
         }
     }
 
+    @Override
     public Friendship updateFriendship(User local, UUID senderId, FriendshipStatus newStatus) {
 
         if (local == null) {

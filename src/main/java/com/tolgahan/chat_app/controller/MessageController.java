@@ -1,49 +1,54 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.controller.interfaces.IMessageController;
 import com.tolgahan.chat_app.enums.DeletionType;
 import com.tolgahan.chat_app.exceptions.BadRequestException;
 import com.tolgahan.chat_app.exceptions.InvalidArgumentException;
 import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
-import com.tolgahan.chat_app.model.Conversation;
 import com.tolgahan.chat_app.model.Message;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.request.MessageDeleteRequest;
 import com.tolgahan.chat_app.request.MessageRequest;
 import com.tolgahan.chat_app.response.MessageResponse;
-import com.tolgahan.chat_app.service.ConversationService;
-import com.tolgahan.chat_app.service.MessageService;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.utils.ResponseCreator;
+import com.tolgahan.chat_app.service.interfaces.IMessageService;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/messages")
-public class MessageController {
+@Component
+public class MessageController implements IMessageController {
 
-    private final UserService userService;
-    private final MessageService messageService;
+    private final IUserService userService;
+    private final IMessageService messageService;
     private final Logger logger = LoggerFactory.getLogger(MessageController.class);
 
-    public MessageController(UserService userService, MessageService messageService) {
+    public MessageController(IUserService userService, IMessageService messageService) {
         this.userService = userService;
         this.messageService = messageService;
     }
 
-    @PostMapping("{conversationId}")
-    public String sendMessage(@PathVariable UUID conversationId, @RequestBody MessageRequest messageRequest) {
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null; // Kullanıcı doğrulanmamışsa
+    }
+
+    @Override
+    public String sendMessage(UUID conversationId, MessageRequest messageRequest) {
         if (conversationId == null || messageRequest == null) {
-            logger.error("Conversation id or message request can not be null");
-            throw new InvalidArgumentException("Conversation id or message request can not be null");
+            logger.error("Conversation userId or message request can not be null");
+            throw new InvalidArgumentException("Conversation userId or message request can not be null");
         }
 
         try {
@@ -56,8 +61,21 @@ public class MessageController {
         }
     }
 
-    @GetMapping("/{conversationId}")
-    public List<MessageResponse> getMessages(@PathVariable UUID conversationId) {
+    @Override
+    public String deleteMessage(UUID conversationId, MessageDeleteRequest request) {
+        try {
+            Message message = messageService.deleteMessage(getCurrentUser(), conversationId, request);
+
+            return "Message deleted successfully";
+
+        } catch (Exception e) {
+            logger.error("An error occurred while deleting message", e);
+            throw new BadRequestException("An error occurred while deleting message -> " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<MessageResponse> getMessages(UUID conversationId) {
         try {
             List<MessageResponse> response = new ArrayList<>();
             User user = getCurrentUser();
@@ -80,26 +98,5 @@ public class MessageController {
             logger.error("An error occurred while getting messages", e);
             throw new BadRequestException("An error occurred while getting messages -> " + e.getMessage());
         }
-    }
-
-    @DeleteMapping("/{conversationId}")
-    public String deleteMessage(@PathVariable UUID conversationId, @RequestBody MessageDeleteRequest request) {
-        try {
-            Message message = messageService.deleteMessage(getCurrentUser(), conversationId, request);
-
-            return "Message deleted successfully";
-
-        } catch (Exception e) {
-            logger.error("An error occurred while deleting message", e);
-            throw new BadRequestException("An error occurred while deleting message -> " + e.getMessage());
-        }
-    }
-
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-            return userService.getUserByUsername(userDetails.getUsername());
-        }
-        return null; // Kullanıcı doğrulanmamışsa
     }
 }

@@ -1,42 +1,49 @@
 package com.tolgahan.chat_app.controller;
 
+import com.tolgahan.chat_app.controller.interfaces.IConversationController;
 import com.tolgahan.chat_app.enums.ConversationType;
 import com.tolgahan.chat_app.exceptions.BadRequestException;
 import com.tolgahan.chat_app.exceptions.ConversationNotFoundException;
 import com.tolgahan.chat_app.exceptions.TokenIsNotValidException;
 import com.tolgahan.chat_app.model.Conversation;
-import com.tolgahan.chat_app.model.ConversationUser;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.request.CreateGroupRequest;
 import com.tolgahan.chat_app.response.ConversationResponse;
-import com.tolgahan.chat_app.service.ConversationService;
-import com.tolgahan.chat_app.service.UserService;
-import com.tolgahan.chat_app.validation.ConversationValidator;
+import com.tolgahan.chat_app.service.interfaces.IConversationService;
+import com.tolgahan.chat_app.service.interfaces.IUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/conversation")
-public class ConversationController {
+@Component
+public class ConversationController implements IConversationController {
     private final Logger logger = LoggerFactory.getLogger(ConversationController.class);
-    private final UserService userService;
-    private final ConversationService conversationService;
+    private final IUserService userService;
+    private final IConversationService conversationService;
 
-    public ConversationController(UserService userService, ConversationService conversationService) {
+    public ConversationController(IUserService userService, IConversationService conversationService) {
         this.userService = userService;
         this.conversationService = conversationService;
     }
 
-    @GetMapping
-    public List<ConversationResponse> getAllConversationsWithParams(@RequestParam(name = "type", required = false) ConversationType type) {
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userService.getUserByUsername(userDetails.getUsername());
+        }
+        return null;
+    }
+
+
+    @Override
+    public List<ConversationResponse> getAllConversationsWithParams(ConversationType type) {
         try {
             User user = getCurrentUser();
             if (user == null) {
@@ -66,19 +73,16 @@ public class ConversationController {
             logger.error("Error -> " + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
     }
 
-
-    @PostMapping("/groups")
-    public ConversationResponse createGroup(@RequestBody CreateGroupRequest createGroupRequest) {
+    @Override
+    public ConversationResponse createGroup(CreateGroupRequest createGroupRequest) {
         try {
             User user = getCurrentUser();
             if (user == null) {
                 logger.error("User not found.");
                 throw new TokenIsNotValidException();
             }
-            ConversationValidator.validateTitle(createGroupRequest.getTitle());
             Conversation saved = conversationService.createGroupConversation(user, createGroupRequest.getTitle(), createGroupRequest.getParticipants());
 
             return new ConversationResponse(saved);
@@ -88,8 +92,8 @@ public class ConversationController {
         }
     }
 
-    @GetMapping("/groups/{conversationId}")
-    public ConversationResponse getGroupById(@PathVariable(name = "conversationId") UUID conversationId) {
+    @Override
+    public ConversationResponse getGroupById(UUID conversationId) {
         try {
             User user = getCurrentUser();
             if (user == null) {
@@ -108,12 +112,10 @@ public class ConversationController {
             logger.error("Error -> " + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
-
     }
 
-    @DeleteMapping("/groups/{conversationId}")
-    public String leaveGroup(@PathVariable(name = "conversationId") UUID conversationId) {
+    @Override
+    public String leaveGroup(UUID conversationId) {
         try {
             User user = getCurrentUser();
             if (user == null) {
@@ -126,11 +128,10 @@ public class ConversationController {
             logger.error("Error -> " + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
     }
 
-    @PatchMapping("/groups/{conversationId}")
-    public String addParticipant(@PathVariable(name = "conversationId") UUID conversationId, @RequestBody UUID participantId) {
+    @Override
+    public String addParticipant(UUID conversationId, UUID participantId) {
         try {
             User user = getCurrentUser();
             if (user == null) {
@@ -149,17 +150,5 @@ public class ConversationController {
             logger.error("Error -> " + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
-
     }
-
-
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-            return userService.getUserByUsername(userDetails.getUsername());
-        }
-        return null;
-    }
-
-
 }

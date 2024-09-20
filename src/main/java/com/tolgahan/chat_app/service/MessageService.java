@@ -9,6 +9,7 @@ import com.tolgahan.chat_app.repository.ConversationRepository;
 import com.tolgahan.chat_app.repository.MessageRepository;
 import com.tolgahan.chat_app.request.MessageDeleteRequest;
 import com.tolgahan.chat_app.request.MessageRequest;
+import com.tolgahan.chat_app.service.interfaces.IMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class MessageService {
+public class MessageService implements IMessageService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final Logger logger = LoggerFactory.getLogger(MessageService.class);
@@ -27,10 +28,11 @@ public class MessageService {
         this.conversationRepository = conversationRepository;
     }
 
+    @Override
     public void sendMessage(User user, UUID conversationId, MessageRequest request) {
         if (user == null || conversationId == null || request == null) {
-            logger.error("User, conversation id or message request can not be null");
-            throw new RuntimeException("User, conversation id or message request can not be null");
+            logger.error("User, conversation userId or message request can not be null");
+            throw new RuntimeException("User, conversation userId or message request can not be null");
         }
         if (request.getMessage() == null || request.getDate() == null) {
             logger.error("Message or date can not be null");
@@ -66,10 +68,11 @@ public class MessageService {
         messageRepository.save(message);
     }
 
+    @Override
     public List<Message> getMessages(User user, UUID conversationId) {
         if (conversationId == null) {
-            logger.error("Conversation id can not be null");
-            throw new RuntimeException("Conversation id can not be null");
+            logger.error("Conversation userId can not be null");
+            throw new RuntimeException("Conversation userId can not be null");
         }
         Conversation conversation = conversationRepository.getConversationsById(conversationId).orElseThrow(() -> {
             logger.error("Conversation not found");
@@ -83,10 +86,11 @@ public class MessageService {
         return messageRepository.getMessagesByConversationIdOrderBySentAt(conversationId);
     }
 
+    @Override
     public Message deleteMessage(User user, UUID conversationId, MessageDeleteRequest request) {
         if (conversationId == null || request == null) {
-            logger.error("Conversation id or request body can not be null");
-            throw new RuntimeException("Conversation id or message id can not be null");
+            logger.error("Conversation userId or request body can not be null");
+            throw new RuntimeException("Conversation userId or message userId can not be null");
         }
         Conversation conversation = conversationRepository.getConversationsById(conversationId).orElseThrow(() -> {
             logger.error("Conversation not found");
@@ -100,7 +104,7 @@ public class MessageService {
             logger.error("Message not found");
             return new RuntimeException("Message not found");
         });
-        if(!message.getSender().getId().equals(user.getId())){
+        if (!message.getSender().getId().equals(user.getId())) {
             logger.error("User is not the sender of the message");
             throw new RuntimeException("User is not the sender of the message");
         }

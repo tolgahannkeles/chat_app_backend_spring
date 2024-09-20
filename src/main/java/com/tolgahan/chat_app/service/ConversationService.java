@@ -6,6 +6,7 @@ import com.tolgahan.chat_app.model.ConversationUser;
 import com.tolgahan.chat_app.model.User;
 import com.tolgahan.chat_app.repository.ConversationRepository;
 import com.tolgahan.chat_app.repository.UserRepository;
+import com.tolgahan.chat_app.service.interfaces.IConversationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class ConversationService {
+public class ConversationService implements IConversationService {
     private final ConversationRepository conversationRepository;
     private final Logger logger = LoggerFactory.getLogger(ConversationService.class);
     private final UserRepository userRepository;
@@ -25,42 +26,18 @@ public class ConversationService {
         this.userRepository = userRepository;
     }
 
-    public Conversation createGroupConversation(User user, String title, List<UUID> participants) {
 
-        Conversation conversation = new Conversation();
-        conversation.setConversationType(ConversationType.GROUP);
-        conversation.setTitle(title);
-        conversation.setCreator(user);
-        conversation.getConversationUsers().add(new ConversationUser(user, conversation));
-
-        participants.forEach(id -> {
-                    try {
-                        User participant = userRepository.findUserById(id).orElseThrow(() -> {
-                            logger.error("User not found with id -> " + id);
-                            return new RuntimeException("User not found with id -> " + id);
-                        });
-                        if (participant != null) {
-                            conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
-                        }
-                    } catch (Exception e) {
-                        logger.error("Error -> " + e.getMessage());
-                    }
-
-                }
-        );
-
-
-        return conversationRepository.save(conversation);
-    }
-
+    @Override
     public Conversation getConversationById(UUID id) {
         return conversationRepository.findById(id).orElse(null);
     }
 
+    @Override
     public List<Conversation> getAllConversations(User user) {
         return user.getConversations();
     }
 
+    @Override
     public List<Conversation> getAllGroups(User user) {
         List<Conversation> groups = new ArrayList<>();
         user.getConversations().forEach(conversation -> {
@@ -71,6 +48,7 @@ public class ConversationService {
         return groups;
     }
 
+    @Override
     public List<Conversation> getAllChats(User user) {
         List<Conversation> chats = new ArrayList<>();
         user.getConversations().forEach(conversation -> {
@@ -81,6 +59,7 @@ public class ConversationService {
         return chats;
     }
 
+    @Override
     public Conversation getConversationById(User user, UUID conversationId) {
         List<Conversation> conversations = user.getConversations();
         for (Conversation conversation : conversations) {
@@ -92,6 +71,7 @@ public class ConversationService {
         throw new RuntimeException("Conversation not found");
     }
 
+    @Override
     public void leaveGroup(User user, UUID conversationId) {
         Conversation conversation = getConversationById(user, conversationId);
         if (conversation == null) {
@@ -110,6 +90,36 @@ public class ConversationService {
         conversationRepository.save(conversation);
     }
 
+
+    @Override
+    public Conversation createGroupConversation(User user, String title, List<UUID> participants) {
+        Conversation conversation = new Conversation();
+        conversation.setConversationType(ConversationType.GROUP);
+        conversation.setTitle(title);
+        conversation.setCreator(user);
+        conversation.getConversationUsers().add(new ConversationUser(user, conversation));
+
+        participants.forEach(id -> {
+                    try {
+                        User participant = userRepository.findUserById(id).orElseThrow(() -> {
+                            logger.error("User not found with userId -> " + id);
+                            return new RuntimeException("User not found with userId -> " + id);
+                        });
+                        if (participant != null) {
+                            conversation.getConversationUsers().add(new ConversationUser(participant, conversation));
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error -> " + e.getMessage());
+                    }
+
+                }
+        );
+
+
+        return conversationRepository.save(conversation);
+    }
+
+    @Override
     public void addParticipant(User user, UUID conversationId, User participant) {
         if (user == null || participant == null) {
             logger.error("User or participant not found");

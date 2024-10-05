@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IMessageService {
-    void sendMessage(User user, UUID conversationId, MessageRequest request);
+    Message sendMessage(User user, UUID conversationId, MessageRequest request);
 
     List<Message> getMessages(User user, UUID conversationId);
 

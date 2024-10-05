@@ -8,8 +8,8 @@ import lombok.Data;
 public class LoginRequest {
     @NotEmpty(message = "Username is required")
     String username;
-    @Email(message = "Email is not valid")
-    @NotEmpty(message = "Email is required")
+    //@Email(message = "Email is not valid")
+    //@NotEmpty(message = "Email is required")
     String email;
     @NotEmpty(message = "Password is required")
     String password;

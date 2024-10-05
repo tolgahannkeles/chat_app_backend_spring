@@ -53,7 +53,7 @@ public class Conversation {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ConversationUser> conversationUsers = new ArrayList<>();
 
 

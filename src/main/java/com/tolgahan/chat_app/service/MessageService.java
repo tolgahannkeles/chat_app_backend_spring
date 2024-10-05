@@ -29,11 +29,20 @@ public class MessageService implements IMessageService {
     }
 
     @Override
-    public void sendMessage(User user, UUID conversationId, MessageRequest request) {
-        if (user == null || conversationId == null || request == null) {
-            logger.error("User, conversation userId or message request can not be null");
-            throw new RuntimeException("User, conversation userId or message request can not be null");
+    public Message sendMessage(User user, UUID conversationId, MessageRequest request) {
+        if (user == null){
+            logger.error("User can not be null");
+            throw new RuntimeException("User can not be null");
         }
+        if(conversationId == null){
+            logger.error("Conversation userId can not be null");
+            throw new RuntimeException("Conversation userId can not be null");
+        }
+        if (request == null){
+            logger.error("Message request can not be null");
+            throw new RuntimeException("Message request can not be null");
+        }
+
         if (request.getMessage() == null || request.getDate() == null) {
             logger.error("Message or date can not be null");
             throw new RuntimeException("Message or date can not be null");
@@ -65,7 +74,7 @@ public class MessageService implements IMessageService {
         message.setSender(user);
         message.setConversation(conversation);
 
-        messageRepository.save(message);
+        return messageRepository.save(message);
     }
 
     @Override

@@ -12,13 +12,21 @@ import com.tolgahan.chat_app.request.MessageRequest;
 import com.tolgahan.chat_app.response.MessageResponse;
 import com.tolgahan.chat_app.service.interfaces.IMessageService;
 import com.tolgahan.chat_app.service.interfaces.IUserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,15 +52,16 @@ public class MessageController implements IMessageController {
         return null; // Kullanıcı doğrulanmamışsa
     }
 
+
     @Override
-    public String sendMessage(UUID conversationId, MessageRequest messageRequest) {
+    public String sendMessage(UUID conversationId, MessageRequest messageRequest, Principal principal) {
         if (conversationId == null || messageRequest == null) {
             logger.error("Conversation userId or message request can not be null");
             throw new InvalidArgumentException("Conversation userId or message request can not be null");
         }
 
         try {
-            messageService.sendMessage(getCurrentUser(), conversationId, messageRequest);
+            messageService.sendMessage(userService.getUserByUsername(principal.getName()), conversationId, messageRequest);
             return "Message sent successfully";
 
         } catch (Exception e) {
@@ -60,6 +69,12 @@ public class MessageController implements IMessageController {
             throw new BadRequestException("An error occurred while sending message -> " + e.getMessage());
         }
     }
+
+
+
+
+
+
 
     @Override
     public String deleteMessage(UUID conversationId, MessageDeleteRequest request) {
